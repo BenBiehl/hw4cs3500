@@ -1,14 +1,32 @@
-token = ''
+# Name: Benjamin Biehl
+
+# Shorthands and Definitions
 integers = '0123456789'
 hexadecimals = 'ABCDEF'
 keywords = ['PRINT', '.', ',', '[', ']', '(', ')', ';']
 relations =  ['<', '>', '=', '#']
 addoperators = ['+', '-', 'OR', '&']
 muloperators = ['*', '/', 'AND']
+tokens = []
+token = ''
+current_position = 0
+
+# Token Functions
+def initializeTokens(input_string):
+    global tokens, current_position
+    tokens = input_string.split()
+    current_position = 0
+    getToken()
 
 def getToken():
-    input(token)
+    global token, current_position
+    if current_position < len(tokens):
+        token = tokens[current_position]
+        current_position += 1
+    else:
+        token = "$"
 
+# Bool Functions
 def isInteger(word):
     state = 1
     i = 0
@@ -112,7 +130,7 @@ def isRelation(word):
         return False
     
 def isAddOperator(word):
-    if word in addoperators;
+    if word in addoperators:
         return True
     else:
         return False
@@ -145,16 +163,75 @@ def isIdentifier(word):
                 return False
     return acc
 
-def parseStatementSequence():
-    parseStatement()
-    while(token != "$"):
-        parseStatement()
+# Parse Functions
+def parseExpression():
+    parseSimpleExpression()
+    if isRelation(token):
+        getToken()
+        parseSimpleExpression()
 
-def parseStatement():
-    if token == "PRINT":
-        parsePrintStatement()
+def parseSimpleExpression():
+    parseTerm()
+    while isAddOperator(token):
+        getToken()
+        parseTerm()
+
+def parseTerm():
+    parseFactor()
+    while isMulOperator(token):
+        getToken()
+        parseFactor()
+
+def parseFactor():
+    if isInteger(token) or isDecimal(token) or isString(token) or isIdentifier(token):
+        getToken()
+    elif token == "(":
+        getToken()
+        parseExpression()
+        if token == ")":
+            getToken()
+        else:
+            raise TypeError(") expected")
+    elif token == "~":
+        getToken()
+        parseFactor()
     else:
-        parseAssignment()
+        raise TypeError("Factor expected")
+    
+def parseDesignator():
+    if isIdentifier(token):
+        getToken()
+        while token == "^" or token == "[":
+            parseSelector()
+
+def parseSelector():
+    if token == "^":
+        getToken()
+        if isIdentifier(token):
+            getToken()
+        else:
+            raise TypeError("Identifier expected")
+    elif token == "[":
+        getToken()
+        parseExpression()
+        if token == "]":
+            getToken()
+        else:
+            raise TypeError("] expected")
+    else:
+        raise TypeError("^ or [ expected")
+    
+def parseAssignment():
+    parseDesignator()
+    if token == ":-":
+        getToken()
+        parseExpression()
+        if token == ".":
+            getToken()
+        else:
+            raise TypeError(". expected")
+    else:
+        raise TypeError(":- expected")
 
 def parsePrintStatement():
     if token == "PRINT":
@@ -174,38 +251,27 @@ def parsePrintStatement():
             raise TypeError("( expected")
     else:
         raise TypeError("PRINT expected")
-
-def parseAssignment():
-    parseDesignator()
-    if token == ":=":
-        getToken()
-        parseExpression()
-        if token == ".":
-            getToken()
-        else:
-            raise TypeError(". expected")
+    
+def parseStatement():
+    if token == "PRINT":
+        parsePrintStatement()
     else:
-        raise TypeError(":= expected")
+        parseAssignment()
 
-def parseSelector():
-    if token == "^":
-        getToken()
-        if isIdentifier(token):
-            getToken()
-        else:
-            raise TypeError("identifier expected")
+def parseStatementSequence():
+    parseStatement()
+    while token != "$":
+        parseStatement()
 
-def parseDesignator():
-    notDone = True
+# Main Loop
+input_string = input()
+initializeTokens(input_string)
 
-def parseFactor():
-    notDone = True
-
-def parseTerm():
-    notDone = True
-
-def parseSimpleExpression():
-    notDone = True
-
-def parseExpression():
-    notDone = True
+while token != "$":
+    try:
+        parseStatementSequence()
+        print("VALID")
+    except TypeError as e:
+        print("INVALID")
+        print(e)
+        break
